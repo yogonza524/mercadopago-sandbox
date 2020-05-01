@@ -1,0 +1,2 @@
+local:
+	./gradlew bootRun

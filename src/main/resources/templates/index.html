@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <link rel="stylesheet" th:href="@{/css/uikit.css}">
+    <link rel="stylesheet" href="../static/css/uikit.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/10.0.1/styles/atom-one-dark.min.css">
+    <title>MercadoPago Sandbox</title>
+</head>
+<body>
+    <ul class="uk-tab uk-margin-medium-top uk-flex-center" data-uk-tab="{connect:'#app}">
+        <li><a href="">Sandbox</a></li>
+        <li><a href="">Configuration</a></li>
+    </ul>
+    <ul id="app" class="uk-switcher uk-margin-left uk-margin-right">
+        <li>
+            <div class="uk-grid-small uk-flex-center uk-child-width-1-2@s uk-grid-row-large uk-grid-column-large" uk-grid uk-height-match="row: false">
+                <div class="uk-width-1-4">
+                    <div>
+                        <div class="uk-card uk-card-default uk-card-body">
+                            <h3 class="uk-card-title">Preference</h3>
+                            <ul uk-accordion="multiple: false">
+                                <li class="uk-close">
+                                    <a class="uk-accordion-title" href="#">Add new item</a>
+                                    <div class="uk-accordion-content">
+                                        <div>
+                                            <fieldset class="uk-fieldset">
+                                                <div class="uk-margin">
+                                                    <input class="uk-input" v-model="preference.newItem.name"  type="text" placeholder="Item name">
+                                                </div>
+                                            </fieldset>
+                                            <fieldset class="uk-fieldset">
+                                                <div class="uk-margin">
+                                                    <input class="uk-input" type="number" v-model="preference.newItem.quantity"  placeholder="Item quantity">
+                                                </div>
+                                            </fieldset>
+                                            <fieldset class="uk-fieldset">
+                                                <div class="uk-margin">
+                                                    <input class="uk-input" v-model="preference.newItem.price" type="number" placeholder="Item price">
+                                                </div>
+                                            </fieldset>
+                                            <fieldset class="uk-fieldset">
+                                                <div class="uk-margin">
+                                                    <button class="uk-button uk-button-primary" @click="addItem">Add</button>
+                                                </div>
+                                            </fieldset>
+                                        </div>
+                                    </div>
+                                </li>
+                            </ul>
+                            <hr class="uk-divider-icon">
+                            <ul uk-accordion="multiple: true">
+                                <li class="uk-close" v-for="item in preference.items">
+                                    <a class="uk-accordion-title" href="#">{{item.name}}</a>
+                                    <div class="uk-accordion-content">
+                                        {{item.quantity}} units at $ARS {{item.price}} per unit
+                                        <button class="uk-close-large uk-align-right" @click="removeItem(item)" type="button" uk-close></button>
+                                    </div>
+                                </li>
+                            </ul>
+                            <p uk-margin>
+                                <button class="uk-button uk-button-primary" @click="createPreference">Create</button>
+                            </p>
+                        </div>
+                    </div>
+                </div>
+                <div class="uk-width-3-4">
+                    <div>
+                        <div class="uk-card uk-card-default uk-card-body">
+                            <ul class="uk-tab uk-margin-medium-top uk-flex-center" data-uk-tab="{connect:'#app}">
+                                <li><a href="">Response</a></li>
+                                <li><a href="">Code</a></li>
+                            </ul>
+                            <ul id="responseContainer" class="uk-switcher uk-margin-left uk-margin-right">
+                                <li>
+                                    <a class="uk-button uk-button-primary" target="_blank" v-if="preference.sandboxLink" v-bind:href="preference.sandboxLink">Pay</a>
+<pre>
+    <code class="json">
+        <div v-if="messages.preference.error">{{messages.preference.error}}</div>
+        <div :key="preference.creationFlag" v-for="created in preference.responses">
+{{created}}
+        </div>
+    </code>
+</pre>
+                                </li>
+                                <li>
+<pre>
+    <code class="java">
+public ResponseEntity create(NewPreferenceDTO preferenceDTO) throws MPException {
+    if (StringUtils.isEmpty(preferenceDTO.getAccessToken())) {
+        return ResponseEntity.badRequest().body("Access token is mandatory");
+    }
+    if (preferenceDTO.getItems().isEmpty()) {
+        return ResponseEntity.badRequest().body("Items empty");
+    }
+
+    MercadoPago.SDK.setAccessToken(preferenceDTO.getAccessToken());
+    String notificationUrl = "http://localhost:8080/generic";
+
+    Preference p = new Preference();
+    p.setBackUrls(
+      new BackUrls()
+        .setSuccess(notificationUrl)
+        .setPending(notificationUrl)
+        .setFailure(notificationUrl)
+    );
+    p.setItems(preferenceDTO.getItems().stream()
+            .map(i -> {
+                Item item = new Item();
+                item.setUnitPrice(i.getPrice());
+                item.setTitle(i.getName());
+                item.setQuantity(i.getQuantity());
+
+                return item;
+            })
+            .collect(Collectors.toCollection(ArrayList::new)));
+
+    p.save();
+
+    if (StringUtils.isEmpty(p.getId())) {
+        return ResponseEntity.status(404).body(
+                Collections.singletonMap("Message",
+                        "Preference was not created. Check if Access Token is valid")
+        );
+    }
+    return ResponseEntity.ok(gson.toJson(p));
+}
+    </code>
+</pre>
+                                </li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+                <div>
+
+                </div>
+            </div>
+        </li>
+        <li>
+            <div class="uk-text-center uk-grid-small uk-flex-center" uk-grid>
+                <div>
+                    <div>
+                        <div class="uk-card uk-card-default uk-card-body">
+                            <h3 class="uk-card-title">Access Token</h3>
+                            <form>
+                                <fieldset class="uk-fieldset">
+                                    <div class="uk-margin">
+                                        <input v-model="accessToken" class="uk-input" type="password" placeholder="Sandbox Acces Token">
+                                    </div>
+                                </fieldset>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </li>
+    </ul>
+    <script src="https://cdn.jsdelivr.net/npm/vue/dist/vue.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/10.0.1/highlight.min.js"></script>
+    <script src="../static/js/sandbox.js"></script>
+    <script src="../static/js/uikit.min.js"></script>
+
+    <script th:src="@{/js/uikit.min.js}"></script>
+    <script th:src="@{/js/sandbox.js}"></script>
+    <script>
+        hljs.initHighlighting.called = false;
+        hljs.initHighlighting();
+    </script>
+
+    <script th:inline="javascript">
+    /*<![CDATA[*/
+
+        var genericResponse = /*[[${genericResponse}]]*/ 'default';
+        if (genericResponse) {
+            var response = {
+                collection_id : /*[[${collection_id}]]*/ 'default',
+                collection_status: /*[[${collection_status}]]*/ 'default',
+                external_reference: /*[[${external_reference}]]*/ 'default',
+                payment_type: /*[[${payment_type}]]*/ 'default',
+                merchant_order_id: /*[[${merchant_order_id}]]*/ 'default',
+                preference_id: /*[[${preference_id}]]*/ 'default',
+                site_id: /*[[${site_id}]]*/ 'default',
+                processing_mode: /*[[${processing_mode}]]*/ 'default',
+                merchant_account_id: /*[[${merchant_account_id}]]*/ 'default'
+            };
+            vm._data.preference.responses = [];
+            vm._data.preference.responses.push(response);
+            hljs.initHighlighting.called = false;
+            hljs.initHighlighting();
+        }
+
+    /*]]>*/
+    </script>
+</body>
+</html>
